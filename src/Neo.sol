@@ -17,6 +17,8 @@ contract Neo is Ownable(msg.sender) {
 
     //ERRORS
     error Neo__TrimIsAbove5PP();
+    error Neo__AssetSigmaIsBelow20PP();
+    error Neo__CannotTrimTwiceInSingleBlock();
 
     //STATE VARIABLES
     uint256 public bufferRatio;
@@ -37,6 +39,12 @@ contract Neo is Ownable(msg.sender) {
      * @param assetAllocation the allocation of each asset
      */
     function trim(uint256 assetSigma, uint256 assetAllocation, uint256 trimpp) public onlyOwner {
+        if (assetSigma < i_CAP) {
+            revert Neo__AssetSigmaIsBelow20PP();
+        }
+        if (lastTrimBlock >= block.number) {
+            revert Neo__CannotTrimTwiceInSingleBlock();
+        }
         if (assetSigma >= i_CAP && lastTrimBlock < block.number) {
             updateAllocation(assetAllocation, trimpp);
             emit VolTrim("Trimmed", assetAllocation, assetSigma);
@@ -61,7 +69,7 @@ contract Neo is Ownable(msg.sender) {
     function updateAllocation(uint256 allocation, uint256 trimpp) internal {
         //move 5pp out of the affected asset
         //assuming that 5pp trim = 5e18 deduction from the asset allocation
-        if (trimpp > i_CAP) {
+        if (trimpp > 5e18) {
             revert Neo__TrimIsAbove5PP();
         }
         allocation = allocation - trimpp;
