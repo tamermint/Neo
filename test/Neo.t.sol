@@ -8,6 +8,7 @@ import {DeployNeo} from "../script/DeployNeo.s.sol";
 
 contract NeoTest is Test {
     Neo public neo;
+    DeployNeo public deployer;
 
     //State variables
     uint256 private immutable i_CAP = 20e18;
@@ -18,49 +19,51 @@ contract NeoTest is Test {
     uint256 public ethSigma = 21e18;
     uint256 public btcSigma = 4e18;
 
-    address OWNER = makeAddr("user");
+    address owner = address(this);
     address EXTERNAL = makeAddr("external");
 
     function setUp() external {
-        DeployNeo deployer = new DeployNeo();
-        neo = deployer.run();
+        neo = new Neo();
     }
 
     function test_OwnerCanCallTrim() public {
-        vm.prank(OWNER);
-        neo.trim(ethAllocation, ethSigma, 2e18);
+        vm.prank(owner);
+        neo.trim(ethSigma, ethAllocation, 2e18);
     }
 
     function test_ExternalCannotCallTrim() public {
         vm.expectRevert();
         vm.prank(EXTERNAL);
-        neo.trim(ethAllocation, ethSigma, 2e18);
+        neo.trim(ethSigma, ethAllocation, 2e18);
     }
 
     function test_AllocationCannotBeTrimmedWhenSigmaBelow20PP() public {
-        neo.trim(ethAllocation, 5e18, 2e18);
+        vm.expectRevert();
+        neo.trim(5e18, ethAllocation, 2e18);
     }
 
     function test_AllocationCannotBeTrimmedMoreThanOnceInSingleBlock() public {
-        neo.trim(ethAllocation, 21e18, 2e18);
+        vm.prank(owner);
+        neo.trim(21e18, ethAllocation, 2e18);
         vm.expectRevert();
-        neo.trim(ethAllocation, 21e18, 2e18);
+        neo.trim(21e18, ethAllocation, 2e18);
     }
 
-    function test_AllocationCannotBeTrimmedOverMultipleBlocks() public {
-        neo.trim(ethAllocation, 21e18, 2e18);
+    function test_AllocationCanBeTrimmedOverMultipleBlocks() public {
+        neo.trim(21e18, ethAllocation, 2e18);
         vm.roll(block.number + 1);
-        neo.trim(ethAllocation, 21e18, 2e18);
+        neo.trim(21e18, ethAllocation, 2e18);
     }
 
     function test_TrimCannotBeAbove5pp() public {
         vm.expectRevert();
-        neo.trim(ethAllocation, 21e18, 21e18);
+        neo.trim(21e18, ethAllocation, 21e18);
     }
+    //todo: assertion is failing - start testing here
 
     function test_BufferRatioIsUpdatedAfterTrim() public {
         uint256 preTrimBufferRatio = neo.getBufferRatio();
-        neo.trim(ethAllocation, 21e18, 2e18);
+        neo.trim(21e18, ethAllocation, 2e18);
         uint256 postTrimBufferRatio = neo.getBufferRatio();
         assert(postTrimBufferRatio < preTrimBufferRatio);
     }
