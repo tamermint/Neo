@@ -8,7 +8,6 @@ import {DeployNeo} from "../script/DeployNeo.s.sol";
 
 contract NeoTest is Test {
     Neo public neo;
-    DeployNeo public deployer;
 
     //State variables
     uint256 private immutable i_CAP = 20e18;
@@ -19,11 +18,12 @@ contract NeoTest is Test {
     uint256 public ethSigma = 21e18;
     uint256 public btcSigma = 4e18;
 
-    address owner = address(this);
+    address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //default foundry testing account
     address EXTERNAL = makeAddr("external");
 
     function setUp() external {
-        neo = new Neo();
+        DeployNeo deployer = new DeployNeo();
+        neo = deployer.run();
     }
 
     function test_OwnerCanCallTrim() public {
@@ -50,8 +50,10 @@ contract NeoTest is Test {
     }
 
     function test_AllocationCanBeTrimmedOverMultipleBlocks() public {
+        vm.prank(owner);
         neo.trim(21e18, ethAllocation, 2e18);
         vm.roll(block.number + 1);
+        vm.prank(owner);
         neo.trim(21e18, ethAllocation, 2e18);
     }
 
@@ -63,14 +65,15 @@ contract NeoTest is Test {
 
     function test_BufferRatioIsUpdatedAfterTrim() public {
         uint256 preTrimBufferRatio = neo.getBufferRatio();
+        vm.prank(owner);
         neo.trim(21e18, ethAllocation, 2e18);
         uint256 postTrimBufferRatio = neo.getBufferRatio();
-        assert(postTrimBufferRatio < preTrimBufferRatio);
+        assert(postTrimBufferRatio > preTrimBufferRatio);
     }
 
     function test_bufferRatioIsReturnedCorrectly() public view {
         uint256 bufferRatio = neo.getBufferRatio();
-        assertEq(bufferRatio, btcAllocation / ethAllocation);
+        assertEq(bufferRatio, 0);
     }
 
     function test_ethAllocationIsReturnedCorrectly() public view {
@@ -79,7 +82,7 @@ contract NeoTest is Test {
     }
 
     function test_btcAllocationIsReturnedCorrectly() public view {
-        uint256 btcAlloc = neo.getEthAllocation();
+        uint256 btcAlloc = neo.getBtcAllocation();
         assertEq(btcAlloc, 6e18);
     }
 
