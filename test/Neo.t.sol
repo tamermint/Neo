@@ -38,6 +38,7 @@ contract NeoTest is Test {
     }
 
     function test_AllocationCannotBeTrimmedWhenSigmaBelow20PP() public {
+        vm.prank(owner);
         vm.expectRevert();
         neo.trim(5e18, ethAllocation, 2e18);
     }
@@ -45,6 +46,7 @@ contract NeoTest is Test {
     function test_AllocationCannotBeTrimmedMoreThanOnceInSingleBlock() public {
         vm.prank(owner);
         neo.trim(21e18, ethAllocation, 2e18);
+        vm.prank(owner);
         vm.expectRevert();
         neo.trim(21e18, ethAllocation, 2e18);
     }
@@ -58,10 +60,10 @@ contract NeoTest is Test {
     }
 
     function test_TrimCannotBeAbove5pp() public {
+        vm.prank(owner);
         vm.expectRevert();
         neo.trim(21e18, ethAllocation, 21e18);
     }
-    //todo: assertion is failing - start testing here
 
     function test_BufferRatioIsUpdatedAfterTrim() public {
         uint256 preTrimBufferRatio = neo.getBufferRatio();
