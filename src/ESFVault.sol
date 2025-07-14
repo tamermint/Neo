@@ -41,6 +41,7 @@ contract ESFVault is ERC4626, Ownable, ReentrancyGuard {
 
     struct withdrawRequest {
         uint256 timestamp;
+        uint256 shares;
     }
 
     //CONSTRUCTOR
@@ -61,6 +62,7 @@ contract ESFVault is ERC4626, Ownable, ReentrancyGuard {
     function requestWithdrawal(uint256 shares) public returns (bool passed) {
         //who calls this function must have the mapping updated
         lastWithdrawRequest[msg.sender].timestamp = block.timestamp;
+        lastWithdrawRequest[msg.sender].shares = shares;
         emit WithdrawRequested(msg.sender, shares);
         return true;
     }
@@ -73,6 +75,7 @@ contract ESFVault is ERC4626, Ownable, ReentrancyGuard {
         redeem(shares, requestor, requestor);
         emit WithdrawalFulfilled(msg.sender, requestor, shares);
         lastWithdrawRequest[requestor].timestamp = 0;
+        lastWithdrawRequest[msg.sender].shares = 0;
     }
 
     function checkWithdrawalAndVaultConditions(uint256 shares, address requestor) public {
