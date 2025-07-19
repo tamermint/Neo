@@ -14,22 +14,75 @@ contract ESFVaultTest is Test {
     ESFVault public esf;
     DeployESFVault public deployer;
     HelperConfig helper;
-    ERC20 public asset;
+    MockHelioAud public asset;
     address alice = makeAddr("0xABCD");
-    address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //default foundry testing account
-    uint256 public STARTING_BALANCE = 10 ether;
+    address owner = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38; //default foundry testing account
+    uint256 public constant deployerkey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    uint256 public STARTING_BALANCE = 100 ether;
 
     function setUp() public {
-        deployer = new DeployESFVault();
-        if (block.chainid == 31337) {
-            MockHelioAud(address(asset)).mint(alice, STARTING_BALANCE);
-        }
-        if (block.chainid == 11155111) {
-            HelioAud(address(asset)).mint(alice, STARTING_BALANCE);
-        }
+        asset = new MockHelioAud();
+        esf = new ESFVault(asset);
+        MockHelioAud(address(asset)).mint(alice, STARTING_BALANCE);
         //deposit from erc4626 uses transferFrom so we need to approve Alice
-        esf = deployer.run();
-        vm.prank(alice);
+        vm.startPrank(alice);
         asset.approve(address(esf), type(uint256).max);
+        vm.stopPrank();
+    }
+
+    //////////////////////
+    //Constructor Test///
+    //////////////////////
+    function test__VaultInitialisedCorrectly() public view {
+        address checkAsset = esf.asset();
+        uint256 vaultSupply = esf.totalSupply();
+        uint256 vaultAssets = esf.totalAssets();
+        address vaultOwner = esf.owner();
+        string memory name = esf.name();
+        string memory symbol = esf.symbol();
+        assertEq(vaultOwner, 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        assertEq(name, "ESF Vault Share");
+        assertEq(symbol, "ESFV");
+        assertEq(checkAsset, address(asset));
+        assertEq(vaultSupply, 0);
+        assertEq(vaultAssets, 0);
+    }
+
+    //////////////////////
+    ////DEPOSIT TESTS/////
+    //////////////////////
+
+    function test__CantDepositZeroAmount() public {
+        vm.expectRevert(ESFVault.ESF__CannotDepositZero.selector);
+        vm.prank(alice);
+        esf.deposit(0, alice);
+    }
+
+    function test__ReceiverCantBeZeroAddress() public {
+        vm.expectRevert(ESFVault.ESF__ReceiverCantBeZeroAddress.selector);
+        vm.prank(alice);
+        esf.deposit(1 ether, address(0));
+    }
+
+    function test__DepositEventIsEmitted() public {
+        vm.expectEmit(true, true, true, true);
+        vm.prank(alice);
+        esf.deposit(10 ether, alice);
+    }
+
+    function test__SharesAreMintedToAlice() public {
+        vm.prank(alice);
+        uint256 shares = esf.deposit(10 ether, alice);
+        uint256 sharesOfAlice = esf.balanceOf(alice);
+        assertEq(shares, sharesOfAlice);
+    }
+
+    //////////////////////
+    ////GETTER TEST///////
+    //////////////////////
+
+    function test__HBRReturnedCorrectly() public view {
+        uint256 hbr = esf.HBR();
+        assertEq(hbr, 1.12e18);
     }
 }

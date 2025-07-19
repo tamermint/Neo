@@ -35,7 +35,7 @@ contract ESFVault is ERC4626, Ownable, ReentrancyGuard {
     //event AssetRedeemed(address indexed, uint256);
 
     //STATE VARIABLES
-    uint256 private constant HBR = 1.12e18; //solvency
+    uint256 public constant HBR = 1.12e18; //solvency
 
     mapping(address => withdrawRequest) private lastWithdrawRequest; //enforce timelock
 

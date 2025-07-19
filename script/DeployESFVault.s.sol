@@ -10,9 +10,9 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract DeployESFVault is Script {
     function run() external returns (ESFVault) {
-        HelperConfig config = new HelperConfig();
-        ERC20 asset = config.assetConfig();
-        vm.startBroadcast();
+        HelperConfig helperConfig = new HelperConfig();
+        (ERC20 asset, uint256 deployerKey) = helperConfig.activeNetworkConfig();
+        vm.startBroadcast(deployerKey);
         ESFVault esf = new ESFVault(asset);
         vm.stopBroadcast();
         return esf;

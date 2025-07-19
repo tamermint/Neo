@@ -10,22 +10,30 @@ contract HelperConfig is Script {
     MockHelioAud mockasset = new MockHelioAud();
     HelioAud asset = new HelioAud();
 
-    ERC20 public assetConfig;
+    struct NetworkConfig {
+        ERC20 activeAsset;
+        uint256 deployerKey;
+    }
+
+    NetworkConfig public activeNetworkConfig;
 
     constructor() {
         if (block.chainid == 11155111) {
-            assetConfig = getAsset();
+            activeNetworkConfig = getSepoliaEthConfig();
         }
         if (block.chainid == 31337) {
-            assetConfig = getMockAsset();
+            activeNetworkConfig = getAnvilEthConfig();
         }
     }
 
-    function getMockAsset() public view returns (MockHelioAud) {
-        return mockasset;
+    function getAnvilEthConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            activeAsset: mockasset,
+            deployerKey: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+        });
     }
 
-    function getAsset() public view returns (HelioAud) {
-        return asset;
+    function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({activeAsset: asset, deployerKey: vm.envUint("PRIVATE_KEY")});
     }
 }
