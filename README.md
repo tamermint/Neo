@@ -98,3 +98,74 @@ I want you to keep in mind that you do also ask specific questions that will pus
         lastTrimBlock = block.number;
     }
   ```
+
+- Minimalist Vault created with ERC4626 standard :
+
+```solidity
+  constructor(IERC20 asset_) ERC20("ESF Vault Share", "ESFV") ERC4626(asset_) Ownable(msg.sender) {}
+
+    //FUNCTIONS
+
+    function depositAsset(uint256 assets, address receiver) public nonReentrant {
+        if (assets == 0) {
+            revert ESF__CannotDepositZero();
+        }
+        if (receiver == address(0)) {
+            revert ESF__ReceiverCantBeZeroAddress();
+        }
+        deposit(assets, receiver);
+    }
+
+    function requestWithdrawal(uint256 shares) public returns (bool passed) {
+        //who calls this function must have the mapping updated
+        lastWithdrawRequest[msg.sender].timestamp = block.timestamp;
+        lastWithdrawRequest[msg.sender].shares = shares;
+        emit WithdrawRequested(msg.sender, shares);
+        return true;
+    }
+
+    function fulfillWithdrawal(uint256 shares, address requestor) public nonReentrant {
+        checkWithdrawalAndVaultConditions(shares, requestor);
+        if (block.timestamp - lastWithdrawRequest[requestor].timestamp <= 172800 seconds) {
+            emit EmergencyWithdrawalInitiated(requestor, shares);
+        }
+        redeem(shares, requestor, requestor);
+        emit WithdrawalFulfilled(msg.sender, requestor, shares);
+        lastWithdrawRequest[requestor].timestamp = 0;
+        lastWithdrawRequest[msg.sender].shares = 0;
+    }
+
+    function checkWithdrawalAndVaultConditions(uint256 shares, address requestor) public {
+        if (totalSupply() == 0) {
+            revert ESF__VaultIsEmpty();
+        }
+
+        if (block.timestamp - lastWithdrawRequest[requestor].timestamp < 86400 seconds) {
+            revert ESF__CannotWithdrawWithin24Hrs();
+        }
+        if (checkVaultHealthRatioBeforeWithdraw() == false) {
+            emit TemporaryWithdrawalHold(block.timestamp);
+        }
+        if (checkHealthRatioAfterWithdraw(shares) == false) {
+            emit VaultSolvencyCheckBreached(shares, block.timestamp);
+        }
+    }
+
+    function checkVaultHealthRatioBeforeWithdraw() public view returns (bool passed) {
+        uint256 totalAssets = totalAssets();
+        uint256 totalShares = totalSupply();
+        return FixedPointMathLib.divWadDown(totalAssets, totalShares) > HBR ? true : false;
+    }
+
+    function checkHealthRatioAfterWithdraw(uint256 shares) public view returns (bool passed) {
+        //simulate withdrawal
+        //preview redeem
+        uint256 assets = previewRedeem(shares);
+        //preview assets
+        uint256 remainingAssets = totalAssets() - assets;
+        uint256 remainingShares = totalSupply() - shares;
+        //return HBR
+        return FixedPointMathLib.divWadDown(remainingAssets, remainingShares) > HBR ? true : false;
+    }
+
+```
