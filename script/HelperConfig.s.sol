@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {MockHelioAud} from "../mocks/mockHelioAud.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {HelioAud} from "../src/HelioAUD.sol";
 import {Script} from "forge-std/Script.sol";
 
@@ -10,7 +10,7 @@ contract HelperConfig is Script {
     MockHelioAud mockasset = new MockHelioAud();
     HelioAud asset = new HelioAud();
 
-    IERC20 public assetConfig;
+    ERC20 public assetConfig;
 
     constructor() {
         if (block.chainid == 11155111) {
